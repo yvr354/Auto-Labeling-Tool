@@ -120,6 +120,7 @@ const Annotate = () => {
         
         setImages(imageList);
         if (imageList.length > 0) {
+          console.log('Setting current image:', imageList[0]);
           setCurrentImage(imageList[0]);
           setCurrentImageIndex(0);
           // Load annotations for first image
