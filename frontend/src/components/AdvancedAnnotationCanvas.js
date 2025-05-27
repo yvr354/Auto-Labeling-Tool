@@ -60,12 +60,15 @@ const AdvancedAnnotationCanvas = ({
   // Initialize canvas and load image
   useEffect(() => {
     if (!imageUrl) return;
+    
+    console.log(`Loading image from URL: ${imageUrl}`);
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const img = new Image();
     
     img.onload = () => {
+      console.log(`Image loaded! Dimensions: ${img.width}x${img.height}`);
       const container = containerRef.current;
       const containerWidth = container.clientWidth - 40; // padding
       const containerHeight = container.clientHeight - 40;
@@ -81,6 +84,16 @@ const AdvancedAnnotationCanvas = ({
       canvas.width = img.width * initialScale;
       canvas.height = img.height * initialScale;
       
+      console.log('🖼️ Canvas setup:', {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        containerWidth,
+        containerHeight,
+        imageWidth: img.width,
+        imageHeight: img.height,
+        initialScale
+      });
+      
       // Center the image
       setOffset({
         x: (containerWidth - canvas.width) / 2,
@@ -88,6 +101,11 @@ const AdvancedAnnotationCanvas = ({
       });
       
       redrawCanvas();
+    };
+
+    img.onerror = (error) => {
+      console.error('Failed to load image:', error);
+      console.error('Image URL:', imageUrl);
     };
     
     img.src = imageUrl;
@@ -243,8 +261,9 @@ const AdvancedAnnotationCanvas = ({
 
   // Mouse event handlers
   const handleMouseDown = (e) => {
-    console.log('Mouse down event triggered', { tool, selectedClass, e });
+    console.log('🖱️ Mouse down event:', { tool, selectedClass, e });
     const pos = getMousePos(e);
+    console.log('📍 Mouse position:', pos);
     
     if (tool === 'pan') {
       setIsPanning(true);
@@ -259,15 +278,14 @@ const AdvancedAnnotationCanvas = ({
       return;
     }
     
-    console.log('Checking selectedClass:', selectedClass, 'tool:', tool);
     if (selectedClass === null || selectedClass === undefined) {
-      console.log('Warning: Please select a class first - selectedClass is:', selectedClass);
+      console.log('❌ No class selected:', selectedClass);
       message.warning('Please select a class first');
       return;
     }
     
     if (tool === 'bbox') {
-      console.log('Creating bbox annotation at position:', pos);
+      console.log('✅ Creating bbox annotation');
       setIsDrawing(true);
       setCurrentAnnotation({
         type: 'bbox',
@@ -640,6 +658,7 @@ const AdvancedAnnotationCanvas = ({
             top: offset.y,
             cursor: tool === 'pan' ? 'grab' : tool === 'select' ? 'default' : 'crosshair'
           }}
+          onClick={(e) => alert('Canvas clicked!')}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

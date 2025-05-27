@@ -23,8 +23,8 @@ const SmartAnnotationInterface = ({
   onSave,
   onAutoLabel
 }) => {
-  console.log('SmartAnnotationInterface selectedClass:', selectedClass);
-  const [selectedTool, setSelectedTool] = useState('select');
+  console.log('SmartAnnotationInterface currentImage:', currentImage);
+  const [selectedTool, setSelectedTool] = useState('bbox');
   const [brushSize, setBrushSize] = useState(10);
   const [opacity, setOpacity] = useState(0.7);
   const [showAnnotations, setShowAnnotations] = useState(true);
