@@ -34,12 +34,15 @@ import {
   EyeOutlined
 } from '@ant-design/icons';
 import SmartAnnotationInterface from '../components/SmartAnnotationInterface';
+import { datasetsAPI, modelsAPI, annotationsAPI } from '../services/api';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
 const { Dragger } = Upload;
 
 const Annotate = () => {
+  const [datasets, setDatasets] = useState([]);
+  const [models, setModels] = useState([]);
   const [selectedDataset, setSelectedDataset] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
   const [currentImage, setCurrentImage] = useState(null);
@@ -57,42 +60,92 @@ const Annotate = () => {
   const [isAutoLabeling, setIsAutoLabeling] = useState(false);
   const [showClassModal, setShowClassModal] = useState(false);
   const [newClassName, setNewClassName] = useState('');
+  const [loading, setLoading] = useState(false);
   const [annotationStats, setAnnotationStats] = useState({
     total: 0,
     annotated: 0,
     pending: 0
   });
 
-  // Load sample images for demo
+  // Load datasets and models on component mount
   useEffect(() => {
-    // In a real app, this would load from the selected dataset
-    const sampleImages = [
-      {
-        id: 1,
-        name: 'sample1.jpg',
-        url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Sample+Image+1',
-        annotations: []
-      },
-      {
-        id: 2,
-        name: 'sample2.jpg', 
-        url: 'https://via.placeholder.com/800x600/2196F3/FFFFFF?text=Sample+Image+2',
-        annotations: []
-      },
-      {
-        id: 3,
-        name: 'sample3.jpg',
-        url: 'https://via.placeholder.com/800x600/FF9800/FFFFFF?text=Sample+Image+3', 
-        annotations: []
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        // Load datasets
+        const datasetsResponse = await datasetsAPI.getDatasets();
+        setDatasets(datasetsResponse);
+        
+        // Load models
+        const modelsResponse = await modelsAPI.getModels();
+        setModels(modelsResponse);
+        
+        // Auto-select first dataset if available
+        if (datasetsResponse.length > 0) {
+          setSelectedDataset(datasetsResponse[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+        message.error('Failed to load datasets and models');
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
     
-    setImages(sampleImages);
-    if (sampleImages.length > 0) {
-      setCurrentImage(sampleImages[0]);
-      setAnnotations(sampleImages[0].annotations);
-    }
+    loadInitialData();
   }, []);
+
+  // Load images when dataset is selected
+  useEffect(() => {
+    const loadDatasetImages = async () => {
+      if (!selectedDataset) {
+        setImages([]);
+        setCurrentImage(null);
+        setAnnotations([]);
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const response = await datasetsAPI.getDatasetImages(selectedDataset);
+        const imageList = response.images.map(img => ({
+          id: img.id,
+          name: img.original_filename,
+          url: `http://localhost:12000${img.url}`,
+          annotations: [],
+          width: img.width,
+          height: img.height,
+          is_labeled: img.is_labeled
+        }));
+        
+        setImages(imageList);
+        if (imageList.length > 0) {
+          setCurrentImage(imageList[0]);
+          setCurrentImageIndex(0);
+          // Load annotations for first image
+          loadImageAnnotations(imageList[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading dataset images:', error);
+        message.error('Failed to load dataset images');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadDatasetImages();
+  }, [selectedDataset]);
+
+  // Load annotations for a specific image
+  const loadImageAnnotations = async (imageId) => {
+    try {
+      const response = await annotationsAPI.getAnnotations(imageId);
+      setAnnotations(response.annotations || []);
+    } catch (error) {
+      console.error('Error loading annotations:', error);
+      setAnnotations([]);
+    }
+  };
 
   // Update stats when annotations change
   useEffect(() => {
@@ -117,20 +170,28 @@ const Annotate = () => {
       // Load new image
       setCurrentImageIndex(newIndex);
       setCurrentImage(images[newIndex]);
-      setAnnotations(images[newIndex].annotations || []);
+      
+      // Load annotations for the new image
+      loadImageAnnotations(images[newIndex].id);
     }
   };
 
   // Save annotations for current image
-  const saveCurrentAnnotations = () => {
-    if (currentImage) {
-      const updatedImages = images.map(img => 
-        img.id === currentImage.id 
-          ? { ...img, annotations: annotations }
-          : img
-      );
-      setImages(updatedImages);
-      message.success('Annotations saved!');
+  const saveCurrentAnnotations = async () => {
+    if (currentImage && annotations.length > 0) {
+      try {
+        await annotationsAPI.saveAnnotations(currentImage.id, annotations);
+        const updatedImages = images.map(img => 
+          img.id === currentImage.id 
+            ? { ...img, annotations: annotations, is_labeled: true }
+            : img
+        );
+        setImages(updatedImages);
+        message.success('Annotations saved!');
+      } catch (error) {
+        console.error('Error saving annotations:', error);
+        message.error('Failed to save annotations');
+      }
     }
   };
 
@@ -276,6 +337,19 @@ const Annotate = () => {
           </Col>
           <Col>
             <Space>
+              <Select
+                placeholder="Select Dataset"
+                style={{ width: 200 }}
+                value={selectedDataset}
+                onChange={setSelectedDataset}
+                loading={loading}
+              >
+                {datasets.map(dataset => (
+                  <Option key={dataset.id} value={dataset.id}>
+                    {dataset.name}
+                  </Option>
+                ))}
+              </Select>
               <Button icon={<UploadOutlined />} onClick={() => document.querySelector('.ant-upload input').click()}>
                 Upload Images
               </Button>
@@ -411,12 +485,13 @@ const Annotate = () => {
                   style={{ width: '100%', marginBottom: 12 }}
                   value={selectedModel}
                   onChange={setSelectedModel}
+                  loading={loading}
                 >
-                  <Option value="yolo11n">YOLO11 Nano (Fast)</Option>
-                  <Option value="yolo11s">YOLO11 Small</Option>
-                  <Option value="yolo11m">YOLO11 Medium</Option>
-                  <Option value="yolo11l">YOLO11 Large (Accurate)</Option>
-                  <Option value="sam">SAM (Segmentation)</Option>
+                  {models.map(model => (
+                    <Option key={model.id} value={model.id}>
+                      {model.name} ({model.type})
+                    </Option>
+                  ))}
                 </Select>
                 
                 <Button 

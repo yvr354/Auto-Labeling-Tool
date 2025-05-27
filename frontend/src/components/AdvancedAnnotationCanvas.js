@@ -203,7 +203,7 @@ const AdvancedAnnotationCanvas = ({
   const drawCurrentAnnotation = (ctx) => {
     if (!currentAnnotation) return;
     
-    const color = selectedClass ? classColors[selectedClass % classColors.length] : '#1890ff';
+    const color = selectedClass !== null ? classColors[selectedClass % classColors.length] : '#1890ff';
     ctx.strokeStyle = color;
     ctx.fillStyle = color + '20';
     ctx.lineWidth = 2;
@@ -243,6 +243,7 @@ const AdvancedAnnotationCanvas = ({
 
   // Mouse event handlers
   const handleMouseDown = (e) => {
+    console.log('Mouse down event triggered', { tool, selectedClass, e });
     const pos = getMousePos(e);
     
     if (tool === 'pan') {
@@ -258,18 +259,22 @@ const AdvancedAnnotationCanvas = ({
       return;
     }
     
-    if (!selectedClass && tool !== 'select') {
+    console.log('Checking selectedClass:', selectedClass, 'tool:', tool);
+    if (selectedClass === null || selectedClass === undefined) {
+      console.log('Warning: Please select a class first - selectedClass is:', selectedClass);
       message.warning('Please select a class first');
       return;
     }
     
     if (tool === 'bbox') {
+      console.log('Creating bbox annotation at position:', pos);
       setIsDrawing(true);
       setCurrentAnnotation({
         type: 'bbox',
         bbox: { x: pos.x, y: pos.y, width: 0, height: 0 },
         classIndex: selectedClass
       });
+      console.log('Set isDrawing to true and currentAnnotation');
     } else if (tool === 'polygon') {
       if (!currentAnnotation) {
         // Start new polygon
