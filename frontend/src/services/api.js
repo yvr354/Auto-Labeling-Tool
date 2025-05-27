@@ -189,7 +189,7 @@ export const datasetsAPI = {
     const params = { skip, limit };
     if (labeledOnly !== null) params.labeled_only = labeledOnly;
 
-    const response = await api.get(`/datasets/${datasetId}/images`, { params });
+    const response = await api.get(`/api/v1/datasets/${datasetId}/images`, { params });
     return response.data;
   },
 

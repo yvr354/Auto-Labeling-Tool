@@ -44,6 +44,7 @@ app.add_middleware(
 app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
 app.include_router(datasets.router, prefix="/api/v1/datasets", tags=["datasets"])
 app.include_router(annotations.router, prefix="/api/v1/annotations", tags=["annotations"])
+app.include_router(annotations.router, prefix="/api/v1/images", tags=["image-annotations"])  # Add image-specific routes
 app.include_router(models.router, prefix="/api/v1/models", tags=["models"])
 app.include_router(export.router, prefix="/api/v1/export", tags=["export"])
 app.include_router(enhanced_export.router, prefix="/api/v1/enhanced-export", tags=["enhanced-export"])
@@ -64,6 +65,11 @@ app.include_router(smart_segmentation.router, prefix="/api", tags=["smart-segmen
 static_dir = Path(settings.STATIC_FILES_DIR)
 static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+# Serve uploaded files
+upload_dir = Path(settings.UPLOAD_DIR)
+upload_dir.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(upload_dir)), name="uploads")
 
 # Health check endpoint
 @app.get("/health")

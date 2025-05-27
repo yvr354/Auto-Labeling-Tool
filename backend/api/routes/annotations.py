@@ -43,3 +43,42 @@ async def delete_annotation(annotation_id: str):
     """Delete annotation"""
     # TODO: Implement annotation deletion
     return {"message": "Annotation deleted", "annotation_id": annotation_id}
+
+# ==================== IMAGE-SPECIFIC ANNOTATION ENDPOINTS ====================
+
+@router.get("/{image_id}/annotations")
+async def get_image_annotations(image_id: str):
+    """Get all annotations for a specific image"""
+    # For now, return empty list - this will be implemented with database
+    return {"annotations": []}
+
+@router.post("/{image_id}/annotations")
+async def save_image_annotations(image_id: str, data: Dict[str, Any]):
+    """Save annotations for a specific image"""
+    # For now, just return success - this will be implemented with database
+    annotations = data.get("annotations", [])
+    return {
+        "message": "Annotations saved successfully",
+        "image_id": image_id,
+        "count": len(annotations)
+    }
+
+@router.put("/{image_id}/annotations/{annotation_id}")
+async def update_image_annotation(image_id: str, annotation_id: str, annotation: AnnotationCreate):
+    """Update a specific annotation for an image"""
+    # TODO: Implement annotation update
+    return {
+        "message": "Annotation updated",
+        "image_id": image_id,
+        "annotation_id": annotation_id
+    }
+
+@router.delete("/{image_id}/annotations/{annotation_id}")
+async def delete_image_annotation(image_id: str, annotation_id: str):
+    """Delete a specific annotation for an image"""
+    # TODO: Implement annotation deletion
+    return {
+        "message": "Annotation deleted",
+        "image_id": image_id,
+        "annotation_id": annotation_id
+    }
